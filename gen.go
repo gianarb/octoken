@@ -10,7 +10,11 @@ import (
 	"strings"
 )
 
-func NewTokenGenerator(m int, gfn func() string) *TokenGenerator {
+var ErrGenerateToken error
+
+type GenerateTokenFn func() (string, error)
+
+func NewTokenGenerator(m int, gfn GenerateTokenFn) *TokenGenerator {
 	return &TokenGenerator{
 		maxChecksumLen:  m,
 		generateTokenFn: gfn,
@@ -19,23 +23,26 @@ func NewTokenGenerator(m int, gfn func() string) *TokenGenerator {
 
 type TokenGenerator struct {
 	maxChecksumLen  int
-	generateTokenFn func() string
+	generateTokenFn GenerateTokenFn
 }
 
 // GenerateSecureToken is the default function provieded by octoken to generate
 // the random part of the token.  You have to specify how long you want such
 // section to be.
 // Thanks Andzej Maciusovic https://stackoverflow.com/a/59457748
-func GenerateSecureToken(length int) string {
+func GenerateSecureToken(length int) (string, error) {
 	b := make([]byte, length)
 	if _, err := rand.Read(b); err != nil {
-		return ""
+		return "", err
 	}
-	return hex.EncodeToString(b)[0:length]
+	return hex.EncodeToString(b)[0:length], nil
 }
 
 func (t *TokenGenerator) Generate(prefix string) (string, error) {
-	token := t.generateTokenFn()
+	token, err := t.generateTokenFn()
+	if err != nil {
+		return "", fmt.Errorf(err.Error(), ErrGenerateToken)
+	}
 	cc := crc32.ChecksumIEEE([]byte(token))
 	checksum := toBase62(cc)
 	if len(checksum) > t.maxChecksumLen {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestTokenGenerator(t *testing.T) {
-	tg := octoken.NewTokenGenerator(6)
+	tg := octoken.NewTokenGenerator()
 	token, err := tg.Generate("atp")
 	if err != nil {
 		t.Fatal(err)
@@ -19,7 +19,7 @@ func TestTokenGenerator(t *testing.T) {
 }
 
 func ExampleNewTokenGenerator() {
-	tg := octoken.NewTokenGenerator(6)
+	tg := octoken.NewTokenGenerator()
 	token, err := tg.Generate("atp")
 	if err != nil {
 	}
@@ -28,7 +28,7 @@ func ExampleNewTokenGenerator() {
 }
 
 func ExampleWithGenerateTokenFn() {
-	tg := octoken.NewTokenGenerator(6, octoken.WithGenerateTokenFn(func() (string, error) {
+	tg := octoken.NewTokenGenerator(octoken.WithGenerateTokenFn(func() (string, error) {
 		return "1234567", nil
 	}))
 	token, err := tg.Generate("atp")

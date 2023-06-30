@@ -10,8 +10,11 @@ import (
 	"strings"
 )
 
+// Error used to notify when the function used to generate a token fails.
 var ErrGenerateToken error
 
+// GenerateTokenFn can be used to define the logic you want to use to generate
+// the random part of the token
 type GenerateTokenFn func() (string, error)
 
 // Override the default function used to generate the random part of the token
@@ -21,9 +24,24 @@ func WithGenerateTokenFn(fn GenerateTokenFn) func(*TokenGenerator) {
 	}
 }
 
-func NewTokenGenerator(m int, opt ...func(*TokenGenerator)) *TokenGenerator {
+func WithTokenLenght(l int) func(*TokenGenerator) {
+	return func(s *TokenGenerator) {
+		s.tokenLenght = l
+	}
+}
+
+func WithChecksumLengh(l int) func(*TokenGenerator) {
+	return func(s *TokenGenerator) {
+		s.chekcsumLenght = l
+	}
+}
+
+// NewTokenGenerator is a function used to construct a TokenGenerator
+// The first parameter identifies
+func NewTokenGenerator(opt ...func(*TokenGenerator)) *TokenGenerator {
 	tg := &TokenGenerator{
-		maxChecksumLen:  m,
+		chekcsumLenght:  6,
+		tokenLenght:     30,
 		generateTokenFn: func() (string, error) { return GenerateSecureToken(30) },
 	}
 	for _, o := range opt {
@@ -33,7 +51,8 @@ func NewTokenGenerator(m int, opt ...func(*TokenGenerator)) *TokenGenerator {
 }
 
 type TokenGenerator struct {
-	maxChecksumLen  int
+	tokenLenght     int
+	chekcsumLenght  int
 	generateTokenFn GenerateTokenFn
 }
 
@@ -41,12 +60,12 @@ type TokenGenerator struct {
 // the random part of the token.  You have to specify how long you want such
 // section to be.
 // Thanks Andzej Maciusovic https://stackoverflow.com/a/59457748
-func GenerateSecureToken(length int) (string, error) {
-	b := make([]byte, length)
+func GenerateSecureToken(lenght int) (string, error) {
+	b := make([]byte, lenght)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(b)[0:length], nil
+	return hex.EncodeToString(b)[0:lenght], nil
 }
 
 func (t *TokenGenerator) Generate(prefix string) (string, error) {
@@ -56,7 +75,7 @@ func (t *TokenGenerator) Generate(prefix string) (string, error) {
 	}
 	cc := crc32.ChecksumIEEE([]byte(token))
 	checksum := toBase62(cc)
-	if len(checksum) > t.maxChecksumLen {
+	if len(checksum) > t.chekcsumLenght {
 		return "", errors.New("checksum too long, passed token is too long")
 	}
 
@@ -64,15 +83,17 @@ func (t *TokenGenerator) Generate(prefix string) (string, error) {
 		"%s_%s%s%s",
 		prefix,
 		token,
-		strings.Repeat("0", t.maxChecksumLen-len(checksum)),
+		strings.Repeat("0", t.chekcsumLenght-len(checksum)),
 		checksum), nil
 }
-func (t *TokenGenerator) ValidateChecksum(token string) bool {
-	encoded := token[len(token)-6:]
-	decoded := token[4 : len(token)-6]
+func (t *TokenGenerator) ValidateChecksum(full string) bool {
+	parts := strings.Split(full, "_")
+	token := parts[1]
+	encoded := token[len(token)-t.chekcsumLenght:]
+	decoded := token[:len(token)-t.chekcsumLenght]
 	cc := crc32.ChecksumIEEE([]byte(decoded))
 	checksum := toBase62(cc)
-	if encoded == fmt.Sprintf("%s%s", strings.Repeat("0", t.maxChecksumLen-len(checksum)), checksum) {
+	if encoded == fmt.Sprintf("%s%s", strings.Repeat("0", t.chekcsumLenght-len(checksum)), checksum) {
 		return true
 	}
 

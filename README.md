@@ -3,24 +3,27 @@ octoken is a Go library written to generate and validate authentication token.
 ```go
 package main
 
+import (
+	"go.gianarb.it/octoken"
+)
+
 func main() {
-    checksumLengh = 6
-	tg := octoken.NewTokenGenerator(checksumLengh)
+    tg := octoken.NewTokenGenerator()
 
     // generate a new token
-	token, err := tg.Generate("atp")
-	if err != nil {
-		t.Fatal(err)
-	}
+    token, err := tg.Generate("atp")
+    if err != nil {
+        panic(err)
+    }
 
     // ideally here you should store it somewhere to make future validation
     // when a user or an application will use it
 
     // this function validates that the checksum and the token are aligned.
     // if they are not you don't even need to look further, the token is invalid.
-	if !tg.ValidateChecksum(token) {
-		t.Fatal("should be valid")
-	}
+    if !tg.ValidateChecksum(token) {
+        panic("checksum and not do not align. Invalid token")
+    }
 }
 ```
 

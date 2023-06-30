@@ -14,11 +14,22 @@ var ErrGenerateToken error
 
 type GenerateTokenFn func() (string, error)
 
-func NewTokenGenerator(m int, gfn GenerateTokenFn) *TokenGenerator {
-	return &TokenGenerator{
-		maxChecksumLen:  m,
-		generateTokenFn: gfn,
+// Override the default function used to generate the random part of the token
+func WithGenerateTokenFn(fn GenerateTokenFn) func(*TokenGenerator) {
+	return func(s *TokenGenerator) {
+		s.generateTokenFn = fn
 	}
+}
+
+func NewTokenGenerator(m int, opt ...func(*TokenGenerator)) *TokenGenerator {
+	tg := &TokenGenerator{
+		maxChecksumLen:  m,
+		generateTokenFn: func() (string, error) { return GenerateSecureToken(30) },
+	}
+	for _, o := range opt {
+		o(tg)
+	}
+	return tg
 }
 
 type TokenGenerator struct {

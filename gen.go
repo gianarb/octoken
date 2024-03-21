@@ -24,15 +24,15 @@ func WithGenerateTokenFn(fn GenerateTokenFn) func(*TokenGenerator) {
 	}
 }
 
-func WithTokenLenght(l int) func(*TokenGenerator) {
+func WithTokenLength(l int) func(*TokenGenerator) {
 	return func(s *TokenGenerator) {
-		s.tokenLenght = l
+		s.tokenLength = l
 	}
 }
 
-func WithChecksumLengh(l int) func(*TokenGenerator) {
+func WithChecksumLength(l int) func(*TokenGenerator) {
 	return func(s *TokenGenerator) {
-		s.chekcsumLenght = l
+		s.chekcsumLength = l
 	}
 }
 
@@ -40,8 +40,8 @@ func WithChecksumLengh(l int) func(*TokenGenerator) {
 // The first parameter identifies
 func NewTokenGenerator(opt ...func(*TokenGenerator)) *TokenGenerator {
 	tg := &TokenGenerator{
-		chekcsumLenght:  6,
-		tokenLenght:     30,
+		chekcsumLength:  6,
+		tokenLength:     30,
 		generateTokenFn: func() (string, error) { return GenerateSecureToken(30) },
 	}
 	for _, o := range opt {
@@ -51,8 +51,8 @@ func NewTokenGenerator(opt ...func(*TokenGenerator)) *TokenGenerator {
 }
 
 type TokenGenerator struct {
-	tokenLenght     int
-	chekcsumLenght  int
+	tokenLength     int
+	chekcsumLength  int
 	generateTokenFn GenerateTokenFn
 }
 
@@ -75,7 +75,7 @@ func (t *TokenGenerator) Generate(prefix string) (string, error) {
 	}
 	cc := crc32.ChecksumIEEE([]byte(token))
 	checksum := toBase62(cc)
-	if len(checksum) > t.chekcsumLenght {
+	if len(checksum) > t.chekcsumLength {
 		return "", errors.New("checksum too long, passed token is too long")
 	}
 
@@ -83,17 +83,17 @@ func (t *TokenGenerator) Generate(prefix string) (string, error) {
 		"%s_%s%s%s",
 		prefix,
 		token,
-		strings.Repeat("0", t.chekcsumLenght-len(checksum)),
+		strings.Repeat("0", t.chekcsumLength-len(checksum)),
 		checksum), nil
 }
 func (t *TokenGenerator) ValidateChecksum(full string) bool {
 	parts := strings.Split(full, "_")
 	token := parts[1]
-	encoded := token[len(token)-t.chekcsumLenght:]
-	decoded := token[:len(token)-t.chekcsumLenght]
+	encoded := token[len(token)-t.chekcsumLength:]
+	decoded := token[:len(token)-t.chekcsumLength]
 	cc := crc32.ChecksumIEEE([]byte(decoded))
 	checksum := toBase62(cc)
-	if encoded == fmt.Sprintf("%s%s", strings.Repeat("0", t.chekcsumLenght-len(checksum)), checksum) {
+	if encoded == fmt.Sprintf("%s%s", strings.Repeat("0", t.chekcsumLength-len(checksum)), checksum) {
 		return true
 	}
 
